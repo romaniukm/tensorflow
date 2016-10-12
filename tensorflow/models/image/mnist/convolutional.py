@@ -23,6 +23,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import argparse
 import gzip
 import os
 import sys
@@ -47,10 +48,7 @@ EVAL_BATCH_SIZE = 64
 EVAL_FREQUENCY = 100  # Number of steps between evaluations.
 
 
-tf.app.flags.DEFINE_boolean("self_test", False, "True if running a self test.")
-tf.app.flags.DEFINE_boolean('use_fp16', False,
-                            "Use half floats instead of full floats if True.")
-FLAGS = tf.app.flags.FLAGS
+FLAGS = None
 
 
 def data_type():
@@ -69,7 +67,7 @@ def maybe_download(filename):
   if not tf.gfile.Exists(filepath):
     filepath, _ = urllib.request.urlretrieve(SOURCE_URL + filename, filepath)
     with tf.gfile.GFile(filepath) as f:
-      size = f.Size()
+      size = f.size()
     print('Successfully downloaded', filename, size, 'bytes.')
   return filepath
 
@@ -82,10 +80,10 @@ def extract_data(filename, num_images):
   print('Extracting', filename)
   with gzip.open(filename) as bytestream:
     bytestream.read(16)
-    buf = bytestream.read(IMAGE_SIZE * IMAGE_SIZE * num_images)
+    buf = bytestream.read(IMAGE_SIZE * IMAGE_SIZE * num_images * NUM_CHANNELS)
     data = numpy.frombuffer(buf, dtype=numpy.uint8).astype(numpy.float32)
     data = (data - (PIXEL_DEPTH / 2.0)) / PIXEL_DEPTH
-    data = data.reshape(num_images, IMAGE_SIZE, IMAGE_SIZE, 1)
+    data = data.reshape(num_images, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS)
     return data
 
 
@@ -323,4 +321,19 @@ def main(argv=None):  # pylint: disable=unused-argument
 
 
 if __name__ == '__main__':
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+      '--use_fp16',
+      default=False,
+      help='Use half floats instead of full floats if True.',
+      action='store_true'
+  )
+  parser.add_argument(
+      '--self_test',
+      default=False,
+      action='store_true',
+      help='True if running a self test.'
+  )
+  FLAGS = parser.parse_args()
+
   tf.app.run()

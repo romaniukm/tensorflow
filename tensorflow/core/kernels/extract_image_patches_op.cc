@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -83,12 +83,14 @@ class ExtractImagePatchesOp : public UnaryOp<T> {
     const int ksize_rows_eff = ksize_rows + (ksize_rows - 1) * (rate_rows - 1);
     const int ksize_cols_eff = ksize_cols + (ksize_cols - 1) * (rate_cols - 1);
 
-    int out_rows = 0, out_cols = 0;
-    int pad_rows = 0, pad_cols = 0;
-    OP_REQUIRES_OK(context, Get2dOutputSize(in_rows, in_cols, ksize_rows_eff,
-                                            ksize_cols_eff, stride_rows,
-                                            stride_cols, padding_, &out_rows,
-                                            &out_cols, &pad_rows, &pad_cols));
+    int64 out_rows = 0, out_cols = 0;
+    int64 pad_rows = 0, pad_cols = 0;
+    OP_REQUIRES_OK(context,
+                   GetWindowedOutputSize(in_rows, ksize_rows_eff, stride_rows,
+                                         padding_, &out_rows, &pad_rows));
+    OP_REQUIRES_OK(context,
+                   GetWindowedOutputSize(in_cols, ksize_cols_eff, stride_cols,
+                                         padding_, &out_cols, &pad_cols));
 
     const std::vector<int64> out_sizes = {batch, out_rows, out_cols,
                                           ksize_rows * ksize_cols * depth};
